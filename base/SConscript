@@ -1,5 +1,2 @@
 Import("env")
-print "env is" + str(env['CPPPATH'])
-# print env
-# env.Command('flags.h')
-# print "CCFLAGS:%s" % env[CPPPATH]
+print env['CPPPATH']

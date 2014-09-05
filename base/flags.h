@@ -23,6 +23,7 @@
 
 #include <string>
 #include "base/basictypes.h"
+// #include "basictypes.h"
 
 // Declare and define global flags.
 // exp: DECLARE_int32(pkt_count, 0, "count the total packet number")

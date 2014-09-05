@@ -58,12 +58,9 @@ add_option("use-google-lint", "Use google-lint script", 0, False)
 
 SetOption("implicit_cache", 1)
 
-# cpp_path = {'CPPPATH':'/home/gene.ge/personal/github/common_lib'}
-
 env = Environment()
-# env.MergeFlags(cpp_path)
-env.Append(CPPPATH="/home/gene.ge/personal/github/common_lib")
-Export('env')
-print "env is" + str(env['CPPPATH'])
-env.SConscript('SConscript')
-Program('base_test', ['base_test.cc'])
+env.Append(CPPPATH=".")
+print env['CPPPATH']
+# Export('env')
+# env.SConscript('SConscript')
+env.Program('base_test.cc')
