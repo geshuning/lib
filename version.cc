@@ -1,0 +1,1 @@
+char *date = "Fri Sep  5 13:41:01 2014";
