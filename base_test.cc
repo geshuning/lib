@@ -1,6 +1,6 @@
 #include <iostream>
-#include "base/basictypes.h"
-#include "base/flags.h"
+#include "base/basictypes.hh"
+#include "base/flags.hh"
 
 void basictypes_h_test()
 {
@@ -12,4 +12,5 @@ void basictypes_h_test()
 int main()
 {
     basictypes_h_test();
+
 }

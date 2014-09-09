@@ -57,10 +57,12 @@ add_option("use-google-profiler", "Link google-perftool library", 0, False)
 add_option("use-google-lint", "Use google-lint script", 0, False)
 
 SetOption("implicit_cache", 1)
-
 env = Environment()
-env.Append(CPPPATH=".")
-print env['CPPPATH']
-# Export('env')
-# env.SConscript('SConscript')
+pwd = os.getcwd()
+cpp_path = pwd
+shared_lib_path = "%s/%s" % (pwd, "shared_libs")
+env.Append(CPPPATH=cpp_path)
+env.Append(SHARED_LIB_PATH=shared_lib_path)
+Export('env')
+env.SConscript('SConscript')
 env.Program('base_test.cc')

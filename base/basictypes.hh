@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef BASE_BASICTYPES_H_
-#define BASE_BASICTYPES_H_
+#ifndef BASE_BASICTYPES_HH_
+#define BASE_BASICTYPES_HH_
 #include <stddef.h>
 #include <string.h>
 #include <inttypes.h>
@@ -84,7 +84,7 @@ const  int64 kint64min  = (((static_cast<int64>(kint32min)) << 32) | 0);
     void operator=(const TypeName&)
 // A macro to disallow the evil copy constructor and operator= functions
 // This should be used in the private: declarations for a class
-#define DISALLOW_CONPY_AND_ASSIGN(TypeName)     \
+#define DISALLOW_COPY_AND_ASSIGN(TypeName)     \
     TypeName(const TypeName&);                  \
     void operator=(const TypeName&)
 // Declarations for a class that wants to prevent anyone from instantiating it.
@@ -190,4 +190,4 @@ template <typename T>
 inline void ignore_result(const T&) {
 }
 
-#endif  // BASE_BASICTYPES_H_
+#endif  // BASE_BASICTYPES_HH_

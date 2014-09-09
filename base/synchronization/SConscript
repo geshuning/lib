@@ -1,0 +1,4 @@
+Import("env")
+sources = ["lock.cc"]
+shared_lib = env.SharedLibrary("synchronization", sources)
+env.Install(env['SHARED_LIB_PATH'], shared_lib)

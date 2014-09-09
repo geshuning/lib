@@ -1,2 +1,2 @@
 Import("env")
-print env['CPPPATH']
+env.SConscript("synchronization/SConscript")

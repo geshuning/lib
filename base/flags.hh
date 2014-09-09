@@ -18,11 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef BASE_FLAGS_H_
-#define BASE_FLAGS_H_
+#ifndef BASE_FLAGS_HH_
+#define BASE_FLAGS_HH_
 
 #include <string>
-#include "base/basictypes.h"
+#include "base/basictypes.hh"
 // #include "basictypes.h"
 
 // Declare and define global flags.
@@ -65,4 +65,4 @@
     }                                                   \
     using fLS::FLAGS_##name;
 
-#endif  // BASE_FLAGS_H_
+#endif  // BASE_FLAGS_HH_
