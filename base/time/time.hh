@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef BASE_TIME_TIME_H_
-#define BASE_TIME_TIME_H_
+#ifndef BASE_TIME_TIME_HH_
+#define BASE_TIME_TIME_HH_
 
 #include <sys/time.h>
 #include <time.h>
@@ -27,10 +27,11 @@
 
 #include <limits>
 
-#include <base/basictypes.h>
+#include <base/basictypes.hh>
 
+namespace base {
 class Time;
-class TimeTicks;
+// class TimeTicks;
 
 class TimeDelta {
 public:
@@ -42,7 +43,11 @@ public:
     static TimeDelta FromMinutes(int minutes);
 
     static TimeDelta Max() {
-        return std::numeric_limits<int64>::max();
+        return TimeDelta(std::numeric_limits<int64>::max());
+    }
+
+    bool is_max() const {
+        return delta_ == std::numeric_limits<int64>::max();
     }
 
     int InDays() const;
@@ -62,12 +67,12 @@ public:
         return TimeDelta(delta_ - other.delta_);
     }
 
-    TimeDelta &operator+=(TimeDelta other) const {
+    TimeDelta &operator+=(TimeDelta other) {
         delta_ += other.delta_;
         return *this;
     }
 
-    TimeDelta &operator-=(TimeDelta other) const {
+    TimeDelta &operator-=(TimeDelta other) {
         delta_ -= other.delta_;
         return *this;
     }
@@ -93,12 +98,18 @@ public:
     }
 
     bool operator>=(TimeDelta other) const {
-        return delta_ >= other.delta;
+        return delta_ >= other.delta_;
     }
 
 private:
     friend class Time;
     friend class TimeTicks;
+
+    // Constructs a delta given the duration in microseconds. This is private
+    // to avoid confusion by callers with an integer constructor. Use
+    // FromSeconds, FromMilliseconds, etc. instead.
+    explicit TimeDelta(int64 delta_us) : delta_(delta_us) {
+    }
 
     int64 delta_;
 };
@@ -162,7 +173,7 @@ public:
         return FromExploded(true, exploded);
     }
 
-    static Time FromInternalValue(int64_ us) {
+    static Time FromInternalValue(int64 us) {
         return Time(us);
     }
 
@@ -265,4 +276,5 @@ private:
     int64 us_;
 };
 
-#endif  // BASE_TIME_TIME_H
+}      // namespace base
+#endif  // BASE_TIME_TIME_HH

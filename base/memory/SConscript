@@ -1,0 +1,4 @@
+Import("env")
+sources = ["ref_counted.cc"]
+shared_lib = env.SharedLibrary("memory", sources)
+env.Install(env['SHARED_LIB_PATH'], shared_lib)

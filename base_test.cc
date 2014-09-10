@@ -1,16 +1,8 @@
-#include <iostream>
 #include "base/basictypes.hh"
-#include "base/flags.hh"
+#include "unit_testing/gtest-1.7.0/include/gtest/gtest.h"
 
-void basictypes_h_test()
+int main(int argc, char **argv)
 {
-    COMPILE_ASSERT(4>1, a_4_is_bigger_than_1);
-    int i_array[] = {1, 2, 3, 4};
-    std::cout << arraysize(i_array) << std::endl;
-}
-
-int main()
-{
-    basictypes_h_test();
-
+    testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

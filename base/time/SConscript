@@ -1,0 +1,4 @@
+Import("env")
+sources = ["time.cc"]
+shared_lib = env.SharedLibrary("time", sources)
+env.Install(env['SHARED_LIB_PATH'], shared_lib)

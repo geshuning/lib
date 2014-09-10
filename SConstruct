@@ -59,10 +59,22 @@ add_option("use-google-lint", "Use google-lint script", 0, False)
 SetOption("implicit_cache", 1)
 env = Environment()
 pwd = os.getcwd()
-cpp_path = pwd
+gtest_path = "%s/%s" % (pwd, "unit_testing/gtest-1.7.0/include")
+cpp_path  = [
+    pwd,
+    gtest_path
+]
 shared_lib_path = "%s/%s" % (pwd, "shared_libs")
 env.Append(CPPPATH=cpp_path)
+gtest_lib_path = "%s/%s" % (pwd, "unit_testing/gtest-1.7.0/")
+lib_path = [
+    gtest_lib_path
+]
+env.Append(LIBPATH=lib_path)
+env.Append(LIBS=["gtest", 'pthread'])
 env.Append(SHARED_LIB_PATH=shared_lib_path)
 Export('env')
 env.SConscript('SConscript')
-env.Program('base_test.cc')
+env.Program("base_unit_test",
+            ["base_test.cc",
+             "base/memory/scoped_ptr_unittest.cc"])

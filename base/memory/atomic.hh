@@ -18,8 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef BASE_MEMORY_ATOMIC_H
-#define BASE_MEMORY_ATOMIC_H
+#ifndef BASE_MEMORY_ATOMIC_HH_
+#define BASE_MEMORY_ATOMIC_HH_
+
+#include "base/basictypes.hh"
 
 // TODO(gene.ge): implement this
 namespace base {
@@ -45,11 +47,15 @@ inline void AtomicRefCountInc(volatile AtomicRefCount *ptr)
     base::AtomicRefCountIncN(ptr, 1);
 }
 
-inline void AtomicRefCountDec(volatile AtomicRefCount *ptr)
+inline bool AtomicRefCountDec(volatile AtomicRefCount *ptr)
 {
-    base::AtomicRefCountDecN(ptr, 1);
+    return base::AtomicRefCountDecN(ptr, 1);
+}
+
+inline bool AtomicRefCountIsOne(volatile AtomicRefCount *ptr) {
+    return true;
 }
 
 }  // namespace base
 
-#endif  // BASE_MEMORY_ATOMIC_H
+#endif  // BASE_MEMORY_ATOMIC_HH_

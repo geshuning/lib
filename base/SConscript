@@ -1,2 +1,4 @@
 Import("env")
 env.SConscript("synchronization/SConscript")
+env.SConscript("time/SConscript")
+env.SConscript("memory/SConscript")

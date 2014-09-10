@@ -18,11 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "base/time/time.h"
+#include "base/time/time.hh"
+#include "base/synchronization/lock.hh"
 
 namespace base {
-
-time_t SysTimeFromTimeStruct(struct tm* timestruct, bool is_local)
+typedef time_t SysTime;
+SysTime SysTimeFromTimeStruct(struct tm* timestruct, bool is_local)
 {
     // base::AutoLock locked(g_sys_time_to_time_struct_lock.Get());
     if (is_local)
@@ -31,7 +32,7 @@ time_t SysTimeFromTimeStruct(struct tm* timestruct, bool is_local)
         return timegm(timestruct);
 }
 
-void SysTimeToTimeStruct(SysTime t, struct tm* timestruct, bool is_local)
+SysTime SysTimeToTimeStruct(time_t t, struct tm* timestruct, bool is_local)
 {
     // base::AutoLock locked(g_sys_time_to_time_struct_lock.Get());
     if (is_local)
@@ -99,8 +100,10 @@ Time Time::Now()
         return Time();
     }
     // Combine seconds and microseconds in a 64-bit
-    return Time((tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec) +
-                kWindowsEpochDeltaMicroseconds);
+    // return Time((tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec) +
+    //             kWindowsEpochDeltaMicroseconds);
+
+    return Time((tv.tv_sec * kMicrosecondsPerSecond + tv.tv_usec));
 }
 
 Time Time::Max()
@@ -146,7 +149,8 @@ void Time::Explode(bool is_local, Exploded* exploded) const {
     // Time stores times with microsecond resolution, but Exploded only carries
     // millisecond resolution, so begin by being lossy.  Adjust from Windows
     // epoch (1601) to Unix epoch (1970);
-    int64 microseconds = us_ - kWindowsEpochDeltaMicroseconds;
+    // int64 microseconds = us_ - kWindowsEpochDeltaMicroseconds;
+    int64 microseconds = 0;
     // The following values are all rounded towards -infinity.
     int64 milliseconds;  // Milliseconds since epoch.
     SysTime seconds;  // Seconds since epoch.
@@ -181,7 +185,7 @@ void Time::Explode(bool is_local, Exploded* exploded) const {
     exploded->millisecond  = millisecond;
 }
 
-Time FromExploded(bool is_local, const Exploded &exploded)
+Time Time::FromExploded(bool is_local, const Exploded &exploded)
 {
     return Time(0);
 }

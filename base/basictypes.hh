@@ -190,4 +190,6 @@ template <typename T>
 inline void ignore_result(const T&) {
 }
 
+// TODO(gene.ge): move to compiler_specific.hh
+#define WARN_UNUSED_RESULT
 #endif  // BASE_BASICTYPES_HH_
