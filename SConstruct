@@ -10,71 +10,73 @@ import sys
 import types
 import time
 
-#options
-#option functions
-#
-options = {}
-options_topass = {}
-def add_option(name, help, nargs, constributesToVariantDir,
-               dest=None, default = None, type="string", choices=None):
-    if dest is None:
-        dest = name
+import SCons
+from SCons.Script.SConscript import SConsEnvironment
+import SCons.Action
+import SCons.Builder
 
-    AddOption("--" + name,
-              dest = dest,
-              nargs = nargs,
-              action = "store",
-              choices = choices,
-              default = default,
-              help = help)
-    options[name] = {"help":help,
-                     "nargs":nargs,
-                     "constributesToVariantDir":constributesToVariantDir,
-                     "dest":dest,
-                     "default":default}
+vars = Variables(None, ARGUMENTS)
+vars.AddVariables(
+    BoolVariable("shared", "Build with shared libraries", True),
+    BoolVariable("strip", "Strip all installed binaries", True),
+    BoolVariable("debug", "Build with debug messages", True),
+    PathVariable("prefix", "Install prefix", '.', PathVariable.PathAccept),
+    PathVariable("shared-lib-prefix", "Install prefix", 'shared_libs',
+                 PathVariable.PathAccept),
+    EnumVariable("profile", "Build with profiling", "no",
+                 allowed_values=("no", "gprof"), map={}, ignorecase=2),
 
-def get_option(name):
-    return GetOption(name)
+)
+CURRENT_DIR = os.getcwd()
 
-def _has_option(name):
-    x = get_option(nam)
-    if x is None:
-        return False
-    if x == False:
-        return False
-    return True
-
-def has_option(name):
-    x = _has_option(name)
-    if name not in options_topass:
-        options_topass[name] = x
-    return x
-
-add_option("64", "whether to force 64 bit", 0, True, "force64");
-add_option("32", "whether to force 32 bit", 0, True, "force32");
-add_option("use-google-tcmalloc", "Link google-tcmalloc library", 0, True)
-add_option("use-google-profiler", "Link google-perftool library", 0, False)
-add_option("use-google-lint", "Use google-lint script", 0, False)
-
-SetOption("implicit_cache", 1)
-env = Environment()
-pwd = os.getcwd()
-gtest_path = "%s/%s" % (pwd, "unit_testing/gtest-1.7.0/include")
-cpp_path  = [
-    pwd,
-    gtest_path
+# CPPPATH
+CPPPATH_common = CURRENT_DIR
+CPPPATH_gtest  = "%s/%s" % (CURRENT_DIR, "unit_testing/gtest-1.7.0/include")
+cpp_path = [
+    CPPPATH_common,
+    CPPPATH_gtest
 ]
-shared_lib_path = "%s/%s" % (pwd, "shared_libs")
-env.Append(CPPPATH=cpp_path)
-gtest_lib_path = "%s/%s" % (pwd, "unit_testing/gtest-1.7.0/")
+# CPPFLAGS
+cpp_flags = [
+    '-g',
+]
+# CPPDEFINES
+cpp_defines = {
+    "RELEASE_BUILD" : "${RELEASE}",
+}
+# LIBPATH
+LIBPATH_gtest = "%s/%s" % (CURRENT_DIR, "unit_testing/gtest-1.7.0/")
 lib_path = [
-    gtest_lib_path
+    LIBPATH_gtest,
 ]
-env.Append(LIBPATH=lib_path)
-env.Append(LIBS=["gtest", 'pthread'])
+# LIBS
+# Put them in dependent order
+LIBS_common = "pthread"
+libs = [
+    "gtest",
+    LIBS_common,
+]
+
+env = Environment()
+# Variables
+env.Append(variables = vars)
+# print '${shared-lib-prefix}'
+# Compile environment
+env.Append(CPPPATH = cpp_path)
+env.Append(CPPFLAGS = cpp_flags)
+env.Append(CPPDEFINES = cpp_defines)
+env.Append(LIBPATH = lib_path)
+env.Append(LIBS = libs)
+# Install environment
+# env.Append(variables = vars, SHARED_LIB_PATH=env['shared-lib-prefix'])
+shared_lib_path = "%s/%s" % (CURRENT_DIR, "shared_libs")
 env.Append(SHARED_LIB_PATH=shared_lib_path)
+
+# Export it
 Export('env')
 env.SConscript('SConscript')
 env.Program("base_unit_test",
             ["base_test.cc",
              "base/memory/scoped_ptr_unittest.cc"])
+# Create help message
+env.Help(vars.GenerateHelpText(env))
