@@ -68,6 +68,10 @@ public:
         return lock_.Try();
     }
 
+    void AssertAcquired() const {
+        // TODO(gene.ge)
+    }
+
 private:
     internal::LockImpl lock_;
 };
