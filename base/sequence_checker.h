@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SEQUENCE_CHECKER_H_
-#define SEQUENCE_CHECKER_H_
+#ifndef BASE_SEQUENCE_CHECKER_HH_
+#define BASE_SEQUENCE_CHECKER_HH_
 
 namespace base {
 // SequenceChecker is a helper class used to help verify that some
@@ -36,4 +36,4 @@ public:
 
 }
 
-#endif  // SEQUENCE_CHECKER_H_
+#endif  // BASE_SEQUENCE_CHECKER_HH_

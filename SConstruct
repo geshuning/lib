@@ -46,15 +46,21 @@ cpp_defines = {
 }
 # LIBPATH
 LIBPATH_gtest = "%s/%s" % (CURRENT_DIR, "unit_testing/gtest-1.7.0/")
+# LIBPATH_base = "%s/%s" % (CURRENT_DIR, "shared_libs")
+LIBPATH_base = "./shared_libs"
 lib_path = [
     LIBPATH_gtest,
+    LIBPATH_base
 ]
 # LIBS
 # Put them in dependent order
 LIBS_common = "pthread"
 libs = [
     "gtest",
-    LIBS_common,
+    "time",
+    "logging",
+    "synchronization",
+    LIBS_common
 ]
 
 env = Environment()
@@ -66,7 +72,7 @@ env.Append(CPPPATH = cpp_path)
 env.Append(CPPFLAGS = cpp_flags)
 env.Append(CPPDEFINES = cpp_defines)
 env.Append(LIBPATH = lib_path)
-env.Append(LIBS = libs)
+# env.Append(LIBS = libs)
 # Install environment
 # env.Append(variables = vars, SHARED_LIB_PATH=env['shared-lib-prefix'])
 shared_lib_path = "%s/%s" % (CURRENT_DIR, "shared_libs")
@@ -77,6 +83,7 @@ Export('env')
 env.SConscript('SConscript')
 env.Program("base_unit_test",
             ["base_test.cc",
-             "base/memory/scoped_ptr_unittest.cc"])
+             "base/memory/scoped_ptr_unittest.cc"],
+            LIBS=libs)
 # Create help message
 env.Help(vars.GenerateHelpText(env))

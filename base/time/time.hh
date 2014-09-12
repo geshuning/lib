@@ -159,7 +159,6 @@ public:
         return us_ == std::numeric_limits<int64>::max();
     }
 
-    static Time UnixEpoch();
     static Time Now();
     static Time Max();
     static Time FromTimeVal(struct timeval t);
@@ -177,20 +176,51 @@ public:
         return Time(us);
     }
 
+    static Time FromTimeT(time_t tt) {
+        if (tt == 0) {
+            return Time();
+        }
+        if (tt == std::numeric_limits<time_t>::max()) {
+            return Max();
+        }
+        return Time(tt * kMicrosecondsPerSecond);
+    }
+
+    time_t ToTimeT() const {
+        if (is_null()) {
+            return 0;
+        }
+        if (is_max()) {
+            return std::numeric_limits<time_t>::max();
+        }
+        return us_ / kMicrosecondsPerSecond;
+    }
     // Converts a string representation of time to a Time object.
     // An example of a time string which is converted is as below:-
-    // "Tue, 15 Nov 1994 12:45:26 GMT". If the timezone is not specified
+    // "1990-10-21 2:30:49". If the timezone is not specified
     // in the input string, FromString assumes local time and FromUTCString
     // assumes UTC. A timezone that cannot be parsed (e.g. "UTC" which is not
     // specified in RFC822) is treated as if the timezone is not specified.
     // TODO(iyengar) Move the FromString/FromTimeT/ToTimeT/FromFileTime to
     // a new time converter class.
-    static bool FromString(const char* time_string, Time* parsed_time) {
+    static bool FromString(const char *time_string, Time *parsed_time) {
         return FromStringInternal(time_string, true, parsed_time);
     }
 
-    static bool FromUTCString(const char* time_string, Time* parsed_time) {
+    static bool FromUTCString(const char *time_string, Time *parsed_time) {
         return FromStringInternal(time_string, false, parsed_time);
+    }
+
+    // Convert a Time to a string, which is second degree.
+    // Only support one format by now, see time_string_format for details.
+    bool ToStringInternal(char *time_string, int len, bool is_local);
+
+    bool ToString(char *time_string, int len) {
+        return ToStringInternal(time_string, len, true);
+    }
+
+    bool ToUTCString(char *time_string, int len) {
+        return ToStringInternal(time_string, len, false);
     }
 
     int64 ToInternalValue() const {
@@ -252,6 +282,9 @@ public:
         return us_ <= other.us_;
     }
 
+public:
+    static const char *time_string_format;
+
 private:
     friend class TimeDelta;
     explicit Time(int64 us) : us_(us) {
@@ -269,12 +302,88 @@ private:
     static bool FromStringInternal(const char *time_string,
                                    bool is_local,
                                    Time *parsed_time);
-
-    // The representation of Jan 1, 1970 UTC in microseconds since the
-    // platform-dependent epoch.
-    static const int64 kTimeTToMicrosecondsOffset;
     int64 us_;
 };
+
+class TimeTicks {
+public:
+    static const clockid_t kClockSystemTrace = 11;
+    TimeTicks() : ticks_(0) {}
+    static TimeTicks Now();
+    bool is_null() const {
+        return ticks_ == 0;
+    }
+
+    static TimeTicks FromInternalValue(int64 ticks) {
+        return TimeTicks(ticks);
+    }
+
+    static TimeTicks UnixEpoch() {
+        // return TickTicks::Now() - Time::Now();
+    }
+
+    int64 ToInternalValue() const {
+        return ticks_;
+    }
+
+    TimeTicks &operator=(TimeTicks other) {
+        ticks_ = other.ticks_;
+        return *this;
+    }
+
+    TimeDelta operator-(TimeTicks other) const {
+        return TimeDelta(ticks_ - other.ticks_);
+    }
+
+    TimeTicks &operator+=(TimeDelta delta) {
+        ticks_ += delta.delta_;
+        return *this;
+    }
+
+    TimeTicks &operator-=(TimeDelta delta) {
+        ticks_ -= delta.delta_;
+        return *this;
+    }
+
+    TimeTicks operator+(TimeDelta delta) const {
+        return TimeTicks(ticks_ + delta.delta_);
+    }
+
+    TimeTicks operator-(TimeDelta delta) const {
+        return TimeTicks(ticks_ - delta.delta_);
+    }
+
+    bool operator==(TimeTicks other) const {
+        return ticks_ == other.ticks_;
+    }
+
+    bool operator!=(TimeTicks other) const {
+        return ticks_ != other.ticks_;
+    }
+
+    bool operator<(TimeTicks other) const {
+        return ticks_ < other.ticks_;
+    }
+
+    bool operator<=(TimeTicks other) const {
+        return ticks_ <= other.ticks_;
+    }
+
+    bool operator>(TimeTicks other) const {
+        return ticks_ > other.ticks_;
+    }
+
+    bool operator>=(TimeTicks other) const {
+        return ticks_ >= other.ticks_;
+    }
+
+protected:
+    friend class TimeDelta;
+    explicit TimeTicks(int64 ticks) : ticks_(ticks) {}
+
+    int64 ticks_;
+};
+
 
 }      // namespace base
 #endif  // BASE_TIME_TIME_HH
