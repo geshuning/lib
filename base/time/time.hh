@@ -26,17 +26,17 @@
 #include <unistd.h>
 
 #include <limits>
+#include <string>
 
 #include <base/basictypes.hh>
 
 namespace base {
 class Time;
-// class TimeTicks;
+class TimeTicks;
 
 class TimeDelta {
 public:
-    TimeDelta() : delta_(0) {
-    }
+    TimeDelta() : delta_(0) {}
 
     static TimeDelta FromDays(int days);
     static TimeDelta FromHours(int hours);
@@ -114,6 +114,19 @@ private:
     int64 delta_;
 };
 
+
+class TimeConvert {
+public:
+    static bool Timeval2Time(const struct timeval &s, Time *d);
+    static bool Timet2Time(const time_t &s, Time *d);
+
+    static bool Time2Timeval(const Time &s, struct timeval *d);
+    static bool Time2Timet(const Time &s, time_t *d);
+    static bool Time2UTCString(const Time &s, std::string *d);
+    static bool Time2String(const Time &s, std::string *d);
+
+};
+
 class Time {
 public:
     static const int64 kMillisecondsPerSecond = 1000;
@@ -131,7 +144,8 @@ public:
     // Represents an exploded time that can be formatted nicely. This is kind of
     // like the Win32 SYSTEMTIME structure or the Unix "struct tm" with a few
     // additions and changes to prevent errors.
-    struct Exploded {
+    class Exploded {
+    public:
         int year;          // Four digit year "2007"
         int month;         // 1-based month (values 1 = January, etc.)
         int day_of_week;   // 0-based day of week (0 = Sunday, etc.)
@@ -377,7 +391,7 @@ public:
         return ticks_ >= other.ticks_;
     }
 
-protected:
+private:
     friend class TimeDelta;
     explicit TimeTicks(int64 ticks) : ticks_(ticks) {}
 

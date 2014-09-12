@@ -109,7 +109,8 @@ class LogMessage {
   LogMessage(const char* file, int line);
   LogMessage(const char* file, int line, LogSeverity severity);
   LogMessage(const char* module, const char* file, int line);
-  LogMessage(const char* module, const char* file, int line, LogSeverity severity);
+  LogMessage(const char* module, const char* file, int line,
+             LogSeverity severity);
   ~LogMessage();
   void Flush();
   static const size_t kMaxLogMessageLen;

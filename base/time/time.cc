@@ -134,9 +134,9 @@ struct timeval Time::ToTimeVal() const {
 
 void Time::Explode(bool is_local, Exploded* exploded) const {
     int64 microseconds = us_;
-    int64 milliseconds;  // Milliseconds since epoch.
-    time_t seconds;  // Seconds since epoch.
-    int millisecond;  // Exploded millisecond value (0-999).
+    int64 milliseconds;
+    time_t seconds;
+    int millisecond;
     if (microseconds >= 0) {
         // Rounding towards -infinity <=> rounding towards 0, in this case.
         milliseconds = microseconds / kMicrosecondsPerMillisecond;
@@ -271,6 +271,7 @@ bool Time::Exploded::HasValidValues() const
 }
 
 const char *Time::time_string_format = "%Y-%m-%d %H:%M:%S";
+
 // static
 bool Time::FromStringInternal(const char *time_string,
                               bool is_local,
