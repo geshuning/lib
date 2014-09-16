@@ -1,0 +1,4 @@
+Import("env")
+sources = ["string_number_conversion.cc"]
+shared_lib = env.SharedLibrary("string", sources)
+env.Install(env['SHARED_LIB_PATH'], shared_lib)

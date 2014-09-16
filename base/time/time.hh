@@ -31,6 +31,20 @@
 #include <base/basictypes.hh>
 
 namespace base {
+
+
+const int64 kMillisecondsPerSecond = 1000;
+const int64 kMicrosecondsPerMillisecond = 1000;
+const int64 kMicrosecondsPerSecond = kMicrosecondsPerMillisecond *
+        kMillisecondsPerSecond;
+const int64 kMicrosecondsPerMinute = kMicrosecondsPerSecond * 60;
+const int64 kMicrosecondsPerHour = kMicrosecondsPerMinute * 60;
+const int64 kMicrosecondsPerDay = kMicrosecondsPerHour * 24;
+const int64 kMicrosecondsPerWeek = kMicrosecondsPerDay * 7;
+const int64 kNanosecondsPerMicrosecond = 1000;
+const int64 kNanosecondsPerSecond = kNanosecondsPerMicrosecond *
+        kMicrosecondsPerSecond;
+
 class Time;
 class TimeTicks;
 
@@ -115,55 +129,28 @@ private:
 };
 
 
-class TimeConvert {
+class TimeConverter {
 public:
-    static bool Timeval2Time(const struct timeval &s, Time *d);
-    static bool Timet2Time(const time_t &s, Time *d);
+    static Time TimeVal2Time(const struct timeval &val);
+    static Time TimeT2Time(const time_t &val);
 
-    static bool Time2Timeval(const Time &s, struct timeval *d);
-    static bool Time2Timet(const Time &s, time_t *d);
-    static bool Time2UTCString(const Time &s, std::string *d);
-    static bool Time2String(const Time &s, std::string *d);
+    static struct timeval Time2TimeVal(const Time &val);
+    static time_t Time2TimeT(const Time &val);
+    static std::string Time2String(const Time &val, bool is_local);
+    static Time String2Time(const std::string &s, bool is_local);
 
+    static void TimeT2TimeStruct(const time_t &val,
+                                 struct tm *time_struct,
+                                 bool is_local);
+    static time_t TimeStruct2TimeT(struct tm &time_struct, bool is_local);
+
+public:
+    static const char *time_string_format;
 };
 
 class Time {
 public:
-    static const int64 kMillisecondsPerSecond = 1000;
-    static const int64 kMicrosecondsPerMillisecond = 1000;
-    static const int64 kMicrosecondsPerSecond = kMicrosecondsPerMillisecond *
-        kMillisecondsPerSecond;
-    static const int64 kMicrosecondsPerMinute = kMicrosecondsPerSecond * 60;
-    static const int64 kMicrosecondsPerHour = kMicrosecondsPerMinute * 60;
-    static const int64 kMicrosecondsPerDay = kMicrosecondsPerHour * 24;
-    static const int64 kMicrosecondsPerWeek = kMicrosecondsPerDay * 7;
-    static const int64 kNanosecondsPerMicrosecond = 1000;
-    static const int64 kNanosecondsPerSecond = kNanosecondsPerMicrosecond *
-        kMicrosecondsPerSecond;
-
-    // Represents an exploded time that can be formatted nicely. This is kind of
-    // like the Win32 SYSTEMTIME structure or the Unix "struct tm" with a few
-    // additions and changes to prevent errors.
-    class Exploded {
-    public:
-        int year;          // Four digit year "2007"
-        int month;         // 1-based month (values 1 = January, etc.)
-        int day_of_week;   // 0-based day of week (0 = Sunday, etc.)
-        int day_of_month;  // 1-based day of month (1-31)
-        int hour;          // Hour within the current day (0-23)
-        int minute;        // Minute within the current hour (0-59)
-        int second;        // Second within the current minute (0-59 plus leap
-        //   seconds which may take it up to 60).
-        int millisecond;   // Milliseconds within the current second (0-999)
-
-        // A cursory test for whether the data members are within their
-        // respective ranges. A 'true' return value does not guarantee the
-        // Exploded value can be successfully converted to a Time value.
-        bool HasValidValues() const;
-    };
-
-    Time() : us_(0) {
-    }
+    Time() : us_(0) {}
 
     bool is_null() const {
         return us_ == 0;
@@ -175,78 +162,12 @@ public:
 
     static Time Now();
     static Time Max();
-    static Time FromTimeVal(struct timeval t);
-    struct timeval ToTimeVal() const;
-
-    static Time FromUTCExploded(const Exploded &exploded) {
-        return FromExploded(false, exploded);
-    }
-
-    static Time FromLocalExploded(const Exploded &exploded) {
-        return FromExploded(true, exploded);
-    }
-
     static Time FromInternalValue(int64 us) {
         return Time(us);
     }
 
-    static Time FromTimeT(time_t tt) {
-        if (tt == 0) {
-            return Time();
-        }
-        if (tt == std::numeric_limits<time_t>::max()) {
-            return Max();
-        }
-        return Time(tt * kMicrosecondsPerSecond);
-    }
-
-    time_t ToTimeT() const {
-        if (is_null()) {
-            return 0;
-        }
-        if (is_max()) {
-            return std::numeric_limits<time_t>::max();
-        }
-        return us_ / kMicrosecondsPerSecond;
-    }
-    // Converts a string representation of time to a Time object.
-    // An example of a time string which is converted is as below:-
-    // "1990-10-21 2:30:49". If the timezone is not specified
-    // in the input string, FromString assumes local time and FromUTCString
-    // assumes UTC. A timezone that cannot be parsed (e.g. "UTC" which is not
-    // specified in RFC822) is treated as if the timezone is not specified.
-    // TODO(iyengar) Move the FromString/FromTimeT/ToTimeT/FromFileTime to
-    // a new time converter class.
-    static bool FromString(const char *time_string, Time *parsed_time) {
-        return FromStringInternal(time_string, true, parsed_time);
-    }
-
-    static bool FromUTCString(const char *time_string, Time *parsed_time) {
-        return FromStringInternal(time_string, false, parsed_time);
-    }
-
-    // Convert a Time to a string, which is second degree.
-    // Only support one format by now, see time_string_format for details.
-    bool ToStringInternal(char *time_string, int len, bool is_local);
-
-    bool ToString(char *time_string, int len) {
-        return ToStringInternal(time_string, len, true);
-    }
-
-    bool ToUTCString(char *time_string, int len) {
-        return ToStringInternal(time_string, len, false);
-    }
-
     int64 ToInternalValue() const {
         return us_;
-    }
-
-    void UTCExplode(Exploded *exploded) const {
-        return Explode(false, exploded);
-    }
-
-    void LocalExplode(Exploded *exploded) const {
-        return Explode(true, exploded);
     }
 
     Time &operator=(Time other) {
@@ -296,26 +217,10 @@ public:
         return us_ <= other.us_;
     }
 
-public:
-    static const char *time_string_format;
 
 private:
     friend class TimeDelta;
-    explicit Time(int64 us) : us_(us) {
-    }
-    void Explode(bool is_local, Exploded *exploded) const;
-    static Time FromExploded(bool is_local, const Exploded &exploded);
-
-    // Converts a string representation of time to a Time object.
-    // An example of a time string which is converted is as below:-
-    // "Tue, 15 Nov 1994 12:45:26 GMT". If the timezone is not specified
-    // in the input string, local time |is_local = true| or
-    // UTC |is_local = false| is assumed. A timezone that cannot be parsed
-    // (e.g. "UTC" which is not specified in RFC822) is treated as if the
-    // timezone is not specified.
-    static bool FromStringInternal(const char *time_string,
-                                   bool is_local,
-                                   Time *parsed_time);
+    explicit Time(int64 us) : us_(us) {}
     int64 us_;
 };
 
@@ -332,12 +237,12 @@ public:
         return TimeTicks(ticks);
     }
 
-    static TimeTicks UnixEpoch() {
-        // return TickTicks::Now() - Time::Now();
-    }
-
     int64 ToInternalValue() const {
         return ticks_;
+    }
+
+    static TimeTicks UnixEpoch() {
+        // return TickTicks::Now() - Time::Now();
     }
 
     TimeTicks &operator=(TimeTicks other) {

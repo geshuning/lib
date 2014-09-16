@@ -39,6 +39,7 @@ cpp_path = [
 # CPPFLAGS
 cpp_flags = [
     '-g',
+    "-std=c++11"
 ]
 # CPPDEFINES
 cpp_defines = {
@@ -59,6 +60,7 @@ libs = [
     "gtest",
     "time",
     "logging",
+    "string",
     "synchronization",
     LIBS_common
 ]
