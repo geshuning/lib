@@ -26,10 +26,25 @@
 #include <iostream>
 #include <iosfwd>
 #include <sstream>
+#include <list>
+#include <cstdio>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sstream>
+#include <iomanip>
+#include <map>
 
 #include "base/basictypes.hh"
 #include "base/compiler_specific.hh"
 #include "base/flags.hh"
+#include "base/logging/syslog.hh"
+#include "base/synchronization/lock.hh"
+#include "base/time/time.hh"
+
+typedef base::AutoLock MutexLock;
+typedef base::Lock Mutex;
 
 struct CheckOpString {
   CheckOpString(std::string* str) : str_(str) { }
@@ -42,13 +57,24 @@ struct CheckOpString {
   std::string* str_;
 };
 
-enum LogSeverity {kLS_INFO, kLS_WARNING, kLS_ERROR, kLS_FATAL, kLS_MAX};
-extern const char *const LogSeverityNames[kLS_MAX];
+// Log severity enum
+#define LOG_SEVERITYS                             \
+    LOG_SEVERITY(FATAL, SYSLOG_CRITICAL)          \
+    LOG_SEVERITY(ERR, SYSLOG_ERROR)               \
+    LOG_SEVERITY(WARNING, SYSLOG_WARNING)         \
+    LOG_SEVERITY(INFO, SYSLOG_INFORMATIONAL)      \
+    LOG_SEVERITY(DEBUG, SYSLOG_DEBUG)
 
+enum LogSeverity
+{
+#define LOG_SEVERITY(NAME, SEVERITY) kLS_##NAME,
+    LOG_SEVERITYS
+#undef LOG_SEVERITY
+    kLS_MAX
+};
 
-
+// base_logging
 namespace base_logging {
-
 class LogStreamBuf : public std::streambuf {
     public:
     LogStreamBuf(char *buf, int len) {
@@ -66,79 +92,149 @@ class LogStreamBuf : public std::streambuf {
   };
 }  // namespace base_logging
 
+// Log Destination
+enum Log_Destination {
+    kLOG_DST_FILE,
+    kLOG_DST_STDERR,
+    kLOG_DST_SYSLOG,
+    kLOG_DST_SOCK,
+    kLOG_DST_MAX
+};
+
+class LogDestination {
+public:
+    LogDestination() : log_fd_(-1), type(kLOG_DST_MAX)
+    {
+    }
+    ~LogDestination()
+    {
+    }
+    virtual void Log(LogSeverity severity, time_t timestamp,
+                     const char* message, size_t len) = 0;
+public:
+    enum Log_Destination type;
+    int log_fd_;
+private:
+    DISALLOW_COPY_AND_ASSIGN(LogDestination);
+};
+
+class LogDestinationToFile : public LogDestination {
+public:
+    LogDestinationToFile(std::string name);
+    ~LogDestinationToFile();
+    void FlushUnLocked();
+    virtual void Log(LogSeverity severity, time_t timestamp,
+                     const char* message, size_t len);
+private:
+  Mutex lock_;
+  std::string base_filename_;
+  FILE* file_;
+  uint32_t file_length_;
+  uint32_t bytes_since_flush_;
+  uint32_t bytes_max_flush_;
+  int64_t next_flush_time_;
+  DISALLOW_COPY_AND_ASSIGN(LogDestinationToFile);
+};
+
+// module
+class LogModule {
+public:
+    const std::string name;
+    LogSeverity min_severity;
+    bool vlog_on;
+    uint32_t n_bytes;
+    uint32_t max_bytes;
+    LogDestination *severity_dsts[kLS_MAX][kLOG_DST_MAX];
+    LogModule(const std::string m_name);
+    void AddLogDestination(LogDestination *dst, LogSeverity severity);
+private:
+    DISALLOW_COPY_AND_ASSIGN(LogModule);
+};
+
+#define INFO_LOG_TO_FILE(name)                                      \
+    do {                                                            \
+        LogDestinationToFile *dst = new LogDestinationToFile(name); \
+        THIS_MODULE->AddLogDestination(dst, kLS_INFO);              \
+    } while(0)
+
+class LogModule;
 class LogMessage {
-  public:
-  enum {kNoLogPrefix = -1};
-  // LogStream begin
-  class LogStream : public std::ostream {
+public:
+    enum {kNoLogPrefix = -1};
+    // LogStream begin
+    class LogStream : public std::ostream {
     public:
-    LogStream(char *buf, int len, int ctr)
-      :std::ostream(NULL),
-      streambuf_(buf, len),
-      ctr_(ctr),
-      self_(this) {
-        rdbuf(&streambuf_);
-      }
-    int ctr() const {
-      return ctr_;
-    }
-    void set_str(int ctr) {
-      ctr_ = ctr;
-    }
-    LogStream* self() const {
-      return self_;
-    }
-    size_t pcount() const {
-      return streambuf_.pcount();
-    }
-    char* pbase() const {
-      return streambuf_.pbase();
-    }
-    char* str() const {
-      return pbase();
-    }
- private:
-    base_logging::LogStreamBuf streambuf_;
-    int ctr_;
-    LogStream *self_;
-  };
-  // LogStream end
-  public:
-  typedef void (LogMessage::*SendMethod)();
-  LogMessage(const char* file, int line, const CheckOpString& result);
-  LogMessage(const char* file, int line);
-  LogMessage(const char* file, int line, LogSeverity severity);
-  LogMessage(const char* module, const char* file, int line);
-  LogMessage(const char* module, const char* file, int line,
-             LogSeverity severity);
-  ~LogMessage();
-  void Flush();
-  static const size_t kMaxLogMessageLen;
-  void SendToLog();
-  void Fail();
-  std::ostream& stream();
-  struct LogMessageData;
+        LogStream(char *buf, int len, int ctr)
+                :std::ostream(NULL),
+                 streambuf_(buf, len),
+                 ctr_(ctr),
+                 self_(this) {
+            rdbuf(&streambuf_);
+        }
+        int ctr() const {
+            return ctr_;
+        }
+        void set_str(int ctr) {
+            ctr_ = ctr;
+        }
+        LogStream* self() const {
+            return self_;
+        }
+        size_t pcount() const {
+            return streambuf_.pcount();
+        }
+        char* pbase() const {
+            return streambuf_.pbase();
+        }
+        char* str() const {
+            return pbase();
+        }
+    private:
+        base_logging::LogStreamBuf streambuf_;
+        int ctr_;
+        LogStream *self_;
+    };
+    // LogStream end
+public:
+    /*
+      LogMessage(const char* file, int line, const CheckOpString& result);*/
+    LogMessage(){}
+    LogMessage(const char* file, int line, const CheckOpString& result){}
+    LogMessage(const LogModule *module, const char* file, int line,
+               LogSeverity severity);
+    ~LogMessage();
+    void Flush();
+    static const size_t kMaxLogMessageLen;
+    void SendToLog();
+    void Fail();
+    std::ostream& stream();
+    struct LogMessageData;
 
-  private:
-  void Init(const char* module, const char* file, int line,
-            LogSeverity severity, void (LogMessage::*send_method)());
-  private:
-  // static int64 num_messages_[kLS_MAX]; // not use
-  LogMessageData* allocated_;
-  LogMessageData* data_;
-  friend class LogDestination;
+private:
+    void Init(const LogModule* module, const char* file, int line,
+              LogSeverity severity);
+private:
+    LogMessageData* allocated_;
+    LogMessageData* data_;
+    LogModule *module_;
+    friend class LogModule;
 
-  private:
-  DISALLOW_COPY_AND_ASSIGN(LogMessage);
+private:
+    DISALLOW_COPY_AND_ASSIGN(LogMessage);
 };
 
 // LogMesssageFatal mainly used in CHECK macro,
 // When CHECK failed, it will log a FATAL ERROR
 class LogMessageFatal : public LogMessage {
   public:
+    /*
   LogMessageFatal(const char* file, int line);
   LogMessageFatal(const char* file, int line, const CheckOpString& result);
   ~LogMessageFatal();
+  */
+    LogMessageFatal(const char* file, int line){}
+  LogMessageFatal(const char* file, int line, const CheckOpString& result){}
+  ~LogMessageFatal(){}
 };
 
 // Allow folks to put a counter in the LOG_EVERY_X()'ed messages. This
@@ -155,21 +251,35 @@ class LogMessageVoidify {
   void operator&(std::ostream&) {}
 };
 
+
+#define LOG_DEFINE_MODULE(MODULE)               \
+    static LogModule log_module_##MODULE(#MODULE)
+
+#define LOG_DEFINE_THIS_MODULE(MODULE)                          \
+    LOG_DEFINE_MODULE(MODULE);                                  \
+    static LogModule *const THIS_MODULE = &log_module_##MODULE
+
+#define LOG_INFO() LogMessage(THIS_MODULE, \
+                              __FILE__, __LINE__, kLS_INFO).stream()
+#define LOG_WARN() LogMessage(THIS_MODULE, \
+                              __FILE__, __LINE__, kLS_WARNING).stream()
+#define LOG_ERR() LogMessage(THIS_MODULE, \
+                             __FILE__, __LINE__, kLS_ERROR).stream()
+#define LOG_FATAL() LogMessage(THIS_MODULE, \
+                               __FILE__, __LINE__, kLS_FATAL).stream()
+
+#define LOG_INFO_RL(RL)
+#define LOG_WARN_RL(RL)
+#define LOG_ERR_RL(RL)
+#define LOG_FATAL_RL(RL)
+#if 0
 #define COMPACT_LOG_INFO LogMessage(__FILE__, __LINE__)
 #define COMPACT_LOG_WARNING LogMessage(__FILE__, __LINE__, kLS_WARNING)
 #define COMPACT_LOG_ERROR LogMessage(__FILE__, __LINE__, kLS_ERROR)
 #define COMPACT_LOG_FATAL LogMessage(__FILE__, __LINE__, kLS_FATAL)
-#define LOG(severity) COMPACT_LOG_ ## severity.stream()
-
-#define MODULE_COMPACT_LOG_INFO(module) \
-  LogMessage(module, __FILE__, __LINE__)
-#define MODULE_COMPACT_LOG_WARNING(module) \
-  LogMessage(module, __FILE__, __LINE__, kLS_WARNING)
-#define MODULE_COMPACT_LOG_ERROR(module) \
-  LogMessage(module, __FILE__, __LINE__, kLS_ERROR)
-#define MODULE_COMPACT_LOG_FATAL(module) \
-  LogMessage(module, __FILE__, __LINE__, kLS_FATAL)
-#define MLOG(module, severity) MODULE_COMPACT_LOG_ ## severity(module).stream()
+#define LOG(severity) COMPACT_LOG_##severity.stream()
+#endif
+#define LOG(severity) LogMessage().stream()
 
 #define LOG_IF(severity, condition) \
   !(condition) ? (void) 0 : LogMessageVoidify() & LOG(severity)
@@ -181,17 +291,6 @@ class LogMessageVoidify {
 #define DVLOG(verboselevel) VLOG(verboselevel)
 
 namespace base {
-
-  class Logger {
-    public:
-    virtual ~Logger();
-    virtual void Write(bool force_flush,
-                       time_t timestamp,
-                       const char* message,
-                       int message_len) = 0;
-    virtual void Flush() = 0;
-    virtual uint32 LogSize() = 0;
-  };
 
 }  // namespace base
 #include "base/logging/check.hh"

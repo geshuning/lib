@@ -27,29 +27,48 @@ namespace base {
 namespace internal {
 LockImpl::LockImpl()
 {
+#if defined(C11)
+#else
     pthread_mutex_init(&native_handle_, NULL);
+#endif
 }
 
 LockImpl::~LockImpl()
 {
+#if defined(C11)
+#else
     pthread_mutex_destroy(&native_handle_);
+#endif
 }
 
 bool LockImpl::Try()
 {
+    int rv;
+#if defined(C11)
+    rv = native_handle_.try_lock();
+#else
     int rv = pthread_mutex_trylock(&native_handle_);
     // DCHECK(rv == 0 || rv == EBUSY) << ". " << strerror(rv);
+#endif
     return rv == 0;
 }
 
 void LockImpl::Lock()
 {
+#if defined(C11)
+    native_handle_.lock();
+#else
     pthread_mutex_lock(&native_handle_);
+#endif
 }
 
 void LockImpl::Unlock()
 {
+#if defined(C11)
+    native_handle_.unlock();
+#else
     int rv = pthread_mutex_unlock(&native_handle_);
+#endif
 }
 
 }  // namespace internal

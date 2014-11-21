@@ -39,7 +39,8 @@ cpp_path = [
 # CPPFLAGS
 cpp_flags = [
     '-g',
-    "-std=c++11"
+    "-std=c++11",
+    "-DC11"
 ]
 # CPPDEFINES
 cpp_defines = {
@@ -58,10 +59,10 @@ lib_path = [
 LIBS_common = "pthread"
 libs = [
     "gtest",
-    "time",
     "logging",
     "string",
     "synchronization",
+    "time",
     LIBS_common
 ]
 

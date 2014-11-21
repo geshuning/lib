@@ -7,6 +7,14 @@
 #include "base/strings/string_number_conversion.hh"
 #include "base/threading/thread.hh"
 
+LOG_DEFINE_THIS_MODULE(main);
+
+void log_test()
+{
+    INFO_LOG_TO_FILE("main.log");
+    LOG_INFO() << "hello world";
+}
+
 void print_num(int i, int j)
 {
     std::cout << "function " << i << " " << j << "\n";
@@ -14,6 +22,8 @@ void print_num(int i, int j)
 
 int main(int argc, char **argv)
 {
+    log_test();
+    return 0;
     testing::InitGoogleTest(&argc, argv);
     base::Time time_now = base::Time::Now();
     std::cout << time_now.ToInternalValue() << std::endl;

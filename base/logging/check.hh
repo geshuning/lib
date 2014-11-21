@@ -255,7 +255,7 @@ DECLARE_CHECK_STROP_IMPL(strcasecmp, false)
 
 
 // Synonyms for CHECK_* that are used in some unittests.
-/*
+/* (geshuning):Use macros in gtest instead
 #define EXPECT_EQ(val1, val2) CHECK_EQ(val1, val2)
 #define EXPECT_NE(val1, val2) CHECK_NE(val1, val2)
 #define EXPECT_LE(val1, val2) CHECK_LE(val1, val2)
@@ -276,7 +276,6 @@ DECLARE_CHECK_STROP_IMPL(strcasecmp, false)
 #define ASSERT_FALSE(cond)    EXPECT_FALSE(cond)
 #define ASSERT_STREQ(a, b)    EXPECT_STREQ(a, b)
 */
-
 // Synonyms for CHECK_* that are used in DEBUG
 #define DCHECK(condition) CHECK(condition)
 #define DCHECK_EQ(val1, val2) CHECK_EQ(val1, val2)

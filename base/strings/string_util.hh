@@ -53,6 +53,14 @@ public:
 };
 
 extern const char kWhitespaceASCII[];
+extern const char kUtf8ByteOrderMark[];
 
+bool RemoveChars(const std::string &input,
+                 const std::string &remove_chars,
+                 std::string *output);
+bool ReplaceChars(const std::string &input,
+                  const std::string &replace_chars,
+                  const std::string &replace_with,
+                  std::string *output);
 
 #endif  // BASE_STRINGS_STRING_UTIL_HH_

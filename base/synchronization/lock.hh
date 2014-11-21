@@ -20,8 +20,12 @@
 
 #ifndef BASE_SYNCHRONIZATION_LOCK_HH_
 #define BASE_SYNCHRONIZATION_LOCK_HH_
-
+#if defined(C11)
+#include <mutex>
+#include <thread>
+#else
 #include <pthread.h>
+#endif
 #include <unistd.h>
 #include "base/basictypes.hh"
 
@@ -29,7 +33,11 @@ namespace base {
 namespace internal {
 class LockImpl {
 public:
+#if defined(C11)
+    typedef std::mutex NativeHandle;
+#else
     typedef pthread_mutex_t NativeHandle;
+#endif
     LockImpl();
     ~LockImpl();
     bool Try();
