@@ -216,7 +216,7 @@ private:
 private:
     LogMessageData* allocated_;
     LogMessageData* data_;
-    LogModule *module_;
+    const LogModule *module_;
     friend class LogModule;
 
 private:

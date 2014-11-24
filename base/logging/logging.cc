@@ -46,7 +46,12 @@ LogModule::LogModule(const std::string m_name) :
         name(m_name),min_severity(kLS_INFO),
         vlog_on(true), n_bytes(0), max_bytes(kuint32max)
 {
-    module_list.push_back(this);
+    for (int severity = 0; severity < kLS_MAX; ++severity) {
+        for (int dst = 0; dst < kLOG_DST_MAX; ++dst) {
+            severity_dsts[severity][dst] = NULL;
+        }
+    }
+    //module_list.push_back(this);
 }
 void LogModule::AddLogDestination(LogDestination *dst, LogSeverity severity)
 {
@@ -84,6 +89,7 @@ LogDestinationToFile::LogDestinationToFile(std::string name) :
         bytes_since_flush_(0),bytes_max_flush_(kuint32max),
         next_flush_time_(0)
 {
+	type = kLOG_DST_FILE;
 }
 
 LogDestinationToFile::~LogDestinationToFile()
@@ -193,6 +199,7 @@ std::ostream& LogMessage::stream()
 
 LogMessage::~LogMessage()
 {
+    printf("~LogMessage\n");
     Flush();
     delete allocated_;
 }
@@ -202,8 +209,6 @@ static Mutex fatal_msg_lock;
 void LogMessage::Init(const LogModule *module,
                       const char* file,int line, LogSeverity severity)
 {
-
-    std::cout << "here" << std::endl;
     allocated_ = NULL;
     if (severity != kLS_FATAL) {
         allocated_ = new LogMessageData();
@@ -216,7 +221,6 @@ void LogMessage::Init(const LogModule *module,
         // TODO(geshuning): record the crash reason
         // TODO(geshuning): use shared_fatal_msg or exclusive_fatal_msg
     }
-    std::cout << "here" << std::endl;
     stream().fill('0');
     data_->severity_ = severity;
     data_->line_ = line;
@@ -255,17 +259,19 @@ LogMessage::LogMessage(const char* file, int line, const CheckOpString& result) 
 LogMessage::LogMessage(const LogModule *module, const char* file, int line,
                        LogSeverity severity)
 {
-    if (module->n_bytes >= module->max_bytes) {
+    if (module && (module->n_bytes >= module->max_bytes)) {
         LOG_WARN() << "module(" << module->name << ")'s max size has exceed("
                    << module->max_bytes << ")";
     } else {
         // TODO(gene.ge): add a member to indicate whether should be write
+        module_ = module;
         Init(module, file, line, severity);
     }
 }
 void LogMessage::Flush() {
   if (data_->has_been_flushed_) { // TODO(geshuning): has_been_flushed_
-    return;
+      printf("here1\n");
+      return;
   }
   data_->num_chars_to_log_ = data_->stream_.pcount();
   bool append_newline =
@@ -278,10 +284,12 @@ void LogMessage::Flush() {
 
   {
     MutexLock l(log_mutex);
-    std::cout << module_->name << std::endl;
     for (int i = 0; i < kLOG_DST_MAX; ++i) {
         LogDestination *dst = module_->severity_dsts[data_->severity_][i];
+
+        printf("here1111\n");
         if (dst) {
+            printf("here\n");
             dst->Log(data_->severity_, data_->timestamp_,
                      data_->message_text_, data_->num_chars_to_log_);
         }
